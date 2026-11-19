@@ -1,0 +1,166 @@
+<!-- templates/chat.html -->
+
+<!--
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Student Stress Assistant</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #chatbox { width: 700px; height: 420px; border: 1px solid #ccc; overflow-y: scroll; padding: 12px; background:#fafafa; }
+    .msg { margin: 6px 0; padding: 8px; border-radius: 6px; max-width: 85%; }
+    .user { margin-left: auto; background: #e6f0ff; text-align: right; }
+    .bot { margin-right: auto; background: #e6ffe8; text-align: left; }
+    #controls { margin-top: 12px; }
+    input[type="text"], input[type="number"] { padding:6px; margin-right:6px; }
+    button { padding:6px 10px; }
+    .hint { color: #666; font-size: 0.9em; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <h1>Student Stress Assistant</h1>
+
+  <div id="chatbox"></div>
+
+  <div id="controls">
+    <input type="text" id="userInput" placeholder="Type message or numbers like 75,6,4" style="width:420px;">
+    <button onclick="sendMessage()">Send</button>
+    <button onclick="resetChat()">Reset</button>
+  </div>
+
+  <div style="margin-top: 14px;">
+    <strong>OR fill form:</strong><br>
+    Academic % <input id="academic" type="number" value="75" min="0" max="100">
+    Sleep hrs <input id="sleep" type="number" value="6" min="0" max="24">
+    App usage hrs <input id="appUsage" type="number" value="4" min="0" max="24">
+    Attendance % <input id="attendance" type="number" value="85" min="0" max="100">
+    Assignments on time <select id="assignments_on_time"><option value="1">Yes</option><option value="0">No</option></select>
+    <button onclick="getRecommendation()">Get Recommendation</button>
+  </div>
+
+  <div class="hint">
+    Tip: To quickly predict from chat, type `academic,sleep,appUsage` e.g. `75,6,4`.
+  </div>
+
+<script>
+  async function sendMessage(){
+    const input = document.getElementById("userInput").value.trim();
+    if(!input) return;
+    appendMsg(input, "user");
+    document.getElementById("userInput").value = "";
+    const res = await fetch("/chat", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({message: input})
+    });
+    const data = await res.json();
+    appendMsg(data.reply || data.error, "bot");
+  }
+
+  function appendMsg(text, who){
+    const node = document.createElement("div");
+    node.className = "msg " + (who==="user" ? "user" : "bot");
+    node.innerHTML = text.replace(/\n/g,"<br>");
+    document.getElementById("chatbox").appendChild(node);
+    document.getElementById("chatbox").scrollTop = document.getElementById("chatbox").scrollHeight;
+  }
+
+  async function getRecommendation(){
+    const academic = Number(document.getElementById("academic").value);
+    const sleep = Number(document.getElementById("sleep").value);
+    const appUsage = Number(document.getElementById("appUsage").value);
+    const attendance = Number(document.getElementById("attendance").value);
+    const assignments_on_time = Number(document.getElementById("assignments_on_time").value);
+
+    appendMsg(`Academic: ${academic}, Sleep: ${sleep}, App: ${appUsage}`, "user");
+    const res = await fetch("/recommend", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({academic, sleep, appUsage, attendance, assignments_on_time})
+    });
+    const data = await res.json();
+    if(data.error){
+      appendMsg("Error: " + data.error, "bot");
+    } else {
+      appendMsg(`<b>Stress:</b> ${data.stressLevel}<br><b>Advice:</b> ${data.recommendation}`, "bot");
+    }
+  }
+
+  async function resetChat(){
+    await fetch("/reset", {method:"POST"});
+    document.getElementById("chatbox").innerHTML = "";
+  }
+
+  // optional: welcome message
+  appendMsg("Hello! Tell me your academic %, sleep hours and app usage as `75,6,4` or use the form below.", "bot");
+</script>
+</body>
+</html>
+
+
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Stress Advisor</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; }
+        button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .result { background: #e7f3fe; padding: 10px; border-radius: 5px; margin-top: 10px; white-space: pre-line; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Student Stress Advisor</h2>
+        <p>Enter your data to see your stress level and recommendations:</p>
+        
+        <input type="number" id="academic" placeholder="Academic Performance (%)" />
+        <input type="number" id="sleep" placeholder="Sleep Hours" />
+        <input type="number" id="app_usage" placeholder="App Usage (hrs/day)" />
+        <input type="number" id="attendance" placeholder="Attendance (%)" />
+        <input type="number" id="assignments_on_time" placeholder="Assignments on Time (0 or 1)" />
+        
+        <button onclick="getRecommendation()">Get Recommendation</button>
+        
+        <div id="result" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        async function getRecommendation() {
+            const academic = document.getElementById("academic").value;
+            const sleep = document.getElementById("sleep").value;
+            const app_usage = document.getElementById("app_usage").value;
+            const attendance = document.getElementById("attendance").value;
+            const assignments_on_time = document.getElementById("assignments_on_time").value;
+
+            const payload = { academic, sleep, app_usage, attendance, assignments_on_time };
+
+            const resultDiv = document.getElementById("result");
+            resultDiv.style.display = "block";
+            resultDiv.innerHTML = "Processing...";
+
+            try {
+                const response = await fetch("/recommend", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    resultDiv.innerHTML = "Error: " + data.error;
+                } else {
+                    resultDiv.innerHTML = `<strong>Stress Level:</strong> ${data.stressLevel}\n\n
+                                           <strong>Recommendation:</strong> ${data.recommendation}`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = "Error connecting to server.";
+            }
+        }
+    </script>
+</body>
+</html>
